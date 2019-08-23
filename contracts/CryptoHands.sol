@@ -1,4 +1,4 @@
-pragma solidity 0.5.10;
+pragma solidity ^0.5.8;
 
 import "@openzeppelin/contracts/math/SafeMath.sol";
 import "@openzeppelin/contracts/ownership/Ownable.sol";

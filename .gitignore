@@ -1,2 +1,5 @@
+# contract builds
+build
+
 # ignore vendor modules
 node_modules
