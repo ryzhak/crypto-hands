@@ -243,10 +243,10 @@ contract CryptoHands is Ownable {
 		if(userLevel == 1 && _level == 0) return true;
 		// if user with level 3 wants to buy level 2
 		if(userLevel == 2 && _level == 1) return true;
+		// if user with level 4 wants to buy level 3
+		if(userLevel == 3 && _level == 2) return true;
 		// if user with level 4 wants to buy level 4
 		if(userLevel == 3 && _level == 3) return true;
-		// if user with level 4 wants to buy level 1
-		if(userLevel == 3 && _level == 0) return true;
 		// else it is not reinvest so return false
 		return false;
 	}
