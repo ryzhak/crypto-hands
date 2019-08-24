@@ -224,8 +224,11 @@ contract TestAvatar1 is Ownable {
 
 	/**
 	 * @dev Contract constructor
+	 * @param _rootAddress master/root address of the 1st tree node
 	 */
-	constructor() public {
+	constructor(address payable _rootAddress) public {
+		// validation
+		require(_rootAddress != address(0), "constructor(): _rootAddress can not be 0x00");
 		// assign price to 4 initial levels
 		levelPrice[0] = 0.05 ether;
 		levelPrice[1] = 0.15 ether;
@@ -233,7 +236,7 @@ contract TestAvatar1 is Ownable {
 		levelPrice[3] = 1.35 ether;
 		levelPriceCount = 4;
 		// add contract creator as root/master user (the 1st node a tree)
-		_createUser(true, 0);
+		_createUser(_rootAddress, true, 0);
 	}
 
 	//***************
@@ -313,7 +316,7 @@ contract TestAvatar1 is Ownable {
 	}
 
 	/**
-	 * @dev Returns next uplinder for free referral
+	 * @dev Returns next upliner for free referral
 	 * @return next upliner ref id
 	 */
 	function getNextUpliner() external view returns (uint) {
@@ -451,7 +454,7 @@ contract TestAvatar1 is Ownable {
 		require(!users[msg.sender].isInitialized, "regUser(): user exists");
 		require(msg.value == levelPrice[0], "regUser(): incorrect payment sum");
 		// create a new user
-		_createUser(false, _refId);
+		_createUser(msg.sender, false, _refId);
 		// get free ref address
 		address payable freeRefAddress = getFreeRef(userList[_refId]);
 		// add new user to ref
@@ -469,10 +472,11 @@ contract TestAvatar1 is Ownable {
 
 	/**
 	 * @dev Creates a new user
+	 * @param _userAddress new user address
 	 * @param _isRoot whether is root/master node
 	 * @param _refId referrer id of the new user
 	 */
-	function _createUser(bool _isRoot, uint _refId) internal {
+	function _createUser(address payable _userAddress, bool _isRoot, uint _refId) internal {
 		// create a new user
 		User memory user;
 		user.isInitialized = true;
@@ -482,8 +486,8 @@ contract TestAvatar1 is Ownable {
 		user.createdAt = now;
 		user.cycleDetailsCount = 1;
 		// save user
-		userList[usersCount] = msg.sender;
-		users[msg.sender] = user;
+		userList[usersCount] = _userAddress;
+		users[_userAddress] = user;
 		// update global users count
 		usersCount = usersCount.add(1);
 	}
