@@ -7,7 +7,7 @@
     "test": "test"
   },
   "scripts": {
-    "flatten": "./node_modules/.bin/truffle-flattener contracts/CryptoHands.sol --output CryptoHands_full.sol",
+    "flatten": "./node_modules/.bin/truffle-flattener contracts/TestAvatar1.sol --output TestAvatar1_full.sol",
     "test": "scripts/test.sh"
   },
   "author": "",
