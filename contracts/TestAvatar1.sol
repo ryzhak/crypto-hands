@@ -126,7 +126,7 @@ contract TestAvatar1 is Ownable {
 	}
 
 	/**
-	 * @dev Returns next uplinder for free referral
+	 * @dev Returns next upliner for free referral
 	 * @return next upliner ref id
 	 */
 	function getNextUpliner() external view returns (uint) {
