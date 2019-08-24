@@ -12,17 +12,19 @@ const PRICE_LEVEL_2 = web3.utils.toWei("0.15");
 const PRICE_LEVEL_3 = web3.utils.toWei("0.45");
 const PRICE_LEVEL_4 = web3.utils.toWei("1.35");
 
+const EMPTY_ADDRESS = "0x0000000000000000000000000000000000000000";
 const ROOT_REF_ID = 0;
 
 contract("Contract: unit", (accounts) => {
 
 	const ownerAddress = accounts[0];
-	const userAddress = accounts[1];
+	const rootAddress = accounts[1];
+	const userAddress = accounts[2];
 
 	let contract;
 
 	beforeEach(async() => {
-		contract = await ContractArtifact.new().should.be.fulfilled;
+		contract = await ContractArtifact.new(rootAddress, {from: ownerAddress}).should.be.fulfilled;
 	});
 	
 	describe("buyLevel()", () => {
@@ -37,6 +39,10 @@ contract("Contract: unit", (accounts) => {
     });
 
 	describe("constructor()", () => {
+		it("should revert if root address is 0x00", async() => {
+			await ContractArtifact.new(EMPTY_ADDRESS, {from: ownerAddress}).should.be.rejectedWith("revert");
+        });
+
         it("should set contract properties", async() => {
 			assert.equal(await contract.levelPrice(0), PRICE_LEVEL_1);
 			assert.equal(await contract.levelPrice(1), PRICE_LEVEL_2);
@@ -52,8 +58,8 @@ contract("Contract: unit", (accounts) => {
 		});
 		
 		it("should return ref address with free slots", async() => {
-			const freeRefAddress = await contract.getFreeRef(ownerAddress, {from: userAddress}).should.be.fulfilled;
-			assert.equal(freeRefAddress, ownerAddress);
+			const freeRefAddress = await contract.getFreeRef(rootAddress, {from: userAddress}).should.be.fulfilled;
+			assert.equal(freeRefAddress, rootAddress);
         });
     });
 
@@ -72,7 +78,7 @@ contract("Contract: unit", (accounts) => {
 		it("should return upliner address", async() => {
 			await contract.regUser(ROOT_REF_ID, {from: userAddress, value: PRICE_LEVEL_1}).should.be.fulfilled;
 			const uplinerAddress = await contract.getUplinerAddress(LEVEL_1, {from: userAddress}).should.be.fulfilled;
-			assert.equal(uplinerAddress, ownerAddress);
+			assert.equal(uplinerAddress, rootAddress);
         });
     });
 
