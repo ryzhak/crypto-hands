@@ -17,6 +17,7 @@
     "chai": "^4.2.0",
     "chai-as-promised": "^7.1.1",
     "ganache-cli": "^6.6.0",
-    "truffle-flattener": "^1.4.0"
+    "truffle-flattener": "^1.4.0",
+    "truffle-hdwallet-provider": "^1.0.17"
   }
 }

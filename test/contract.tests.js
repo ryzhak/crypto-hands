@@ -1,6 +1,6 @@
 require('chai').use(require('chai-as-promised')).should();
 
-const ContractArtifact = artifacts.require("TestAvatar1");
+const ContractArtifact = artifacts.require("TestAvatar1Testable");
 
 const LEVEL_1 = 0;
 const LEVEL_2 = 1;
@@ -19,7 +19,8 @@ contract("Contract: unit", (accounts) => {
 
 	const ownerAddress = accounts[0];
 	const rootAddress = accounts[1];
-	const userAddress = accounts[2];
+	const userAddress1 = accounts[2];
+	const userAddress2 = accounts[3];
 
 	let contract;
 
@@ -29,12 +30,12 @@ contract("Contract: unit", (accounts) => {
 	
 	describe("buyLevel()", () => {
         it("should revert if user is not registered", async() => {
-			await contract.buyLevel(LEVEL_1, {from: userAddress}).should.be.rejectedWith("revert");
+			await contract.buyLevel(LEVEL_1, {from: userAddress1}).should.be.rejectedWith("revert");
 		});
 		
 		it("should buy a new level", async() => {
-			await contract.regUser(ROOT_REF_ID, {from: userAddress, value: PRICE_LEVEL_1}).should.be.fulfilled;
-			await contract.buyLevel(LEVEL_2, {from: userAddress, value: PRICE_LEVEL_2}).should.be.fulfilled;
+			await contract.regUser(ROOT_REF_ID, {from: userAddress1, value: PRICE_LEVEL_1}).should.be.fulfilled;
+			await contract.buyLevel(LEVEL_2, {from: userAddress1, value: PRICE_LEVEL_2}).should.be.fulfilled;
         });
     });
 
@@ -52,56 +53,66 @@ contract("Contract: unit", (accounts) => {
         });
 	});
 
+	describe("default()", () => {
+		it("should revert if corresponding level is not found", async() => {
+			const invalidLevelPrice = web3.utils.toWei("0.01");
+			await contract.send(invalidLevelPrice, {from: userAddress1}).should.be.rejectedWith("revert");
+		});
+		
+		it("should register a new user", async() => {
+			await contract.sendTransaction({from: userAddress1, value: PRICE_LEVEL_1, data: rootAddress}).should.be.fulfilled;
+			await contract.sendTransaction({from: userAddress2, value: PRICE_LEVEL_1, data: userAddress1}).should.be.fulfilled;
+			const user1 = await contract.users(userAddress1);
+			const user2 = await contract.users(userAddress2);
+			assert.equal(user2.refId.toNumber(), user1.id.toNumber());
+		});
+		
+		it("should buy a new level for registered user", async() => {
+			// register a new user
+			await contract.sendTransaction({from: userAddress1, value: PRICE_LEVEL_1, data: rootAddress}).should.be.fulfilled;
+			// buy level 2 for newly registered user
+			await contract.send(PRICE_LEVEL_2, {from: userAddress1}).should.be.fulfilled;
+        });
+	});
+
 	describe("getFreeRef()", () => {
         it("should revert if ref is not registered", async() => {
-			await contract.getFreeRef(userAddress, {from: userAddress}).should.be.rejectedWith("revert");
+			await contract.getFreeRef(userAddress1, LEVEL_4, {from: userAddress1}).should.be.rejectedWith("revert");
 		});
 		
 		it("should return ref address with free slots", async() => {
-			const freeRefAddress = await contract.getFreeRef(rootAddress, {from: userAddress}).should.be.fulfilled;
+			const freeRefAddress = await contract.getFreeRef(rootAddress, LEVEL_4, {from: userAddress1}).should.be.fulfilled;
 			assert.equal(freeRefAddress, rootAddress);
         });
     });
 
 	describe("getNextUpliner()", () => {
 		it("should return the next upliner id", async() => {
-			const uplinerId = await contract.getNextUpliner({from: userAddress}).should.be.fulfilled;
+			const uplinerId = await contract.getNextUpliner({from: userAddress1}).should.be.fulfilled;
 			assert.equal(uplinerId, ROOT_REF_ID);
         });
     });
 
 	describe("getUplinerAddress()", () => {
         it("should revert if user is not registered", async() => {
-			await contract.getUplinerAddress(LEVEL_1, {from: userAddress}).should.be.rejectedWith("revert");
+			await contract.getUplinerAddress(LEVEL_1, {from: userAddress1}).should.be.rejectedWith("revert");
 		});
 		
 		it("should return upliner address", async() => {
-			await contract.regUser(ROOT_REF_ID, {from: userAddress, value: PRICE_LEVEL_1}).should.be.fulfilled;
-			const uplinerAddress = await contract.getUplinerAddress(LEVEL_1, {from: userAddress}).should.be.fulfilled;
+			await contract.regUser(ROOT_REF_ID, {from: userAddress1, value: PRICE_LEVEL_1}).should.be.fulfilled;
+			const uplinerAddress = await contract.getUplinerAddress(LEVEL_1, {from: userAddress1}).should.be.fulfilled;
 			assert.equal(uplinerAddress, rootAddress);
-        });
-    });
-
-	describe("isCurrentLevelFull()", () => {
-        it("should revert if user is not registered", async() => {
-			await contract.isCurrentLevelFull({from: userAddress}).should.be.rejectedWith("revert");
-		});
-		
-		it("should return false if current user level is not full", async() => {
-			await contract.regUser(ROOT_REF_ID, {from: userAddress, value: PRICE_LEVEL_1}).should.be.fulfilled;
-			const isCurrentLevelFull = await contract.isCurrentLevelFull({from: userAddress}).should.be.fulfilled;
-			assert.equal(isCurrentLevelFull, false);
         });
     });
 
 	describe("isReinvest()", () => {
         it("should revert if user is not registered", async() => {
-			await contract.isReinvest(LEVEL_2, {from: userAddress}).should.be.rejectedWith("revert");
+			await contract.isReinvest(LEVEL_2, {from: userAddress1}).should.be.rejectedWith("revert");
 		});
 		
 		it("should return false if buying is not reinvest", async() => {
-			await contract.regUser(ROOT_REF_ID, {from: userAddress, value: PRICE_LEVEL_1}).should.be.fulfilled;
-			const isReinvest = await contract.isReinvest(LEVEL_2, {from: userAddress}).should.be.fulfilled;
+			await contract.regUser(ROOT_REF_ID, {from: userAddress1, value: PRICE_LEVEL_1}).should.be.fulfilled;
+			const isReinvest = await contract.isReinvest(LEVEL_2, {from: userAddress1}).should.be.fulfilled;
 			assert.equal(isReinvest, false);
         });
     });
@@ -109,11 +120,11 @@ contract("Contract: unit", (accounts) => {
 	describe("regUser()", () => {
         it("should revert if refId does not exist", async() => {
 			const invalidRefId = 1;
-			await contract.regUser(invalidRefId, {from: userAddress, value: PRICE_LEVEL_1}).should.be.rejectedWith("revert");
+			await contract.regUser(invalidRefId, {from: userAddress1, value: PRICE_LEVEL_1}).should.be.rejectedWith("revert");
 		});
 		
 		it("should register a new user", async() => {
-			await contract.regUser(ROOT_REF_ID, {from: userAddress, value: PRICE_LEVEL_1}).should.be.fulfilled;
+			await contract.regUser(ROOT_REF_ID, {from: userAddress1, value: PRICE_LEVEL_1}).should.be.fulfilled;
         });
     });
 });

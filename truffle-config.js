@@ -18,11 +18,8 @@
  *
  */
 
-// const HDWalletProvider = require('truffle-hdwallet-provider');
-// const infuraKey = "fj4jll3k.....";
-//
-// const fs = require('fs');
-// const mnemonic = fs.readFileSync(".secret").toString().trim();
+const HDWalletProvider = require('truffle-hdwallet-provider');
+const config = require('./config');
 
 module.exports = {
   /**
@@ -68,6 +65,11 @@ module.exports = {
       // timeoutBlocks: 200,  // # of blocks before a deployment times out  (minimum/default: 50)
       // skipDryRun: true     // Skip dry run before migrations? (default: false for public nets )
     // },
+
+    kovan: {
+      provider: () => new HDWalletProvider(config.MNEMONIC, `https://kovan.infura.io/v3/${config.INFURA_KEY}`),
+      network_id: 42
+    },
 
     // Useful for private networks
     // private: {
