@@ -452,7 +452,7 @@ contract TestAvatar1 is Ownable {
 		// find the next upliner
 		uint currentUserCycle = users[msg.sender].cycleDetailsCount.sub(1);
 		uint nextRefId = users[msg.sender].refId;
-		uint i = 0;
+		uint i = 1;
 		bool uplinerFound = false;
 		address payable uplinerAddress;
 		while(!uplinerFound) {
@@ -462,7 +462,7 @@ contract TestAvatar1 is Ownable {
 				uplinerFound = true;
 			}
 			// if this is user direct upliner of the needed level
-			if(i == _level) {
+			if(i.mod(_level.add(1)) == 0) {
 				// if direct ref has the needed level
 				if(users[userList[nextRefId]].cycleDetails[currentUserCycle].level == _level) {
 					uplinerAddress = userList[nextRefId];
