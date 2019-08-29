@@ -97,11 +97,23 @@ contract("Contract: unit", (accounts) => {
         it("should revert if user is not registered", async() => {
 			await contract.getUplinerAddress(LEVEL_1, {from: userAddress1}).should.be.rejectedWith("revert");
 		});
+
+		it("should revert if level does not exist", async() => {
+			const invalidLevel = 4;
+			await contract.getUplinerAddress(invalidLevel, {from: userAddress1}).should.be.rejectedWith("revert");
+		});
 		
-		it("should return upliner address", async() => {
+		it("should return root address", async() => {
 			await contract.regUser(ROOT_REF_ID, {from: userAddress1, value: PRICE_LEVEL_1}).should.be.fulfilled;
 			const uplinerAddress = await contract.getUplinerAddress(LEVEL_1, {from: userAddress1}).should.be.fulfilled;
 			assert.equal(uplinerAddress, rootAddress);
+		});
+		
+		it("should return user address of the desired level", async() => {
+			await contract.regUser(ROOT_REF_ID, {from: userAddress1, value: PRICE_LEVEL_1}).should.be.fulfilled;
+			await contract.regUser(1, {from: userAddress2, value: PRICE_LEVEL_1}).should.be.fulfilled;
+			const uplinerAddress = await contract.getUplinerAddress(LEVEL_1, {from: userAddress2}).should.be.fulfilled;
+			assert.equal(uplinerAddress, userAddress1);
         });
     });
 
