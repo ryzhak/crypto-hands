@@ -40,6 +40,13 @@ MLM на блокчейне. Ближайший пример: https://etherscan.
 
 Метод возвращает id реферала со свободными слотами. Рефералы отсортированы по дате регистрации.
 
+#### getUserCycleDetails(address _userAddress, uint _cycleIndex) external view returns(uint level, uint refsCount)
+- **_userAddress** - адрес юзера
+- **_cycleIndex** -  индекс цикла
+- **RETURN** - уровень юзера и кол-во рефералов для выбранного цикла
+
+Метод возвращает уровень пользователя и кол-во рефералов для заданного по индексу цикла.
+
 #### regUser(uint _refId) external payable
 - **_refId** - id реферала
 

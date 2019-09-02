@@ -91,7 +91,7 @@ contract TestAvatar1 is Ownable {
 		// if buying operation is reinvest
 		if(_isReinvest(_level)) {
 			// check that current user level is full
-			require(_getFreeRef(msg.sender, users[msg.sender].cycleDetails[users[msg.sender].cycleDetailsCount].level) != address(0), "buyLevel(): not all levels are full");
+			require(_getFreeRef(msg.sender, users[msg.sender].cycleDetails[users[msg.sender].cycleDetailsCount].level) == address(0), "buyLevel(): not all levels are full");
 			// create a new cycle with a desired level
 			UserCycleDetails memory userCycleDetails;
 			userCycleDetails.level = _level;
@@ -136,6 +136,24 @@ contract TestAvatar1 is Ownable {
 				}
 			}
 		}
+	}
+
+	/**
+	 * @dev Returns user details for particular cycle
+	 * @param _userAddress user address
+	 * @param _cycleIndex cycle index
+	 * @return user level and refs count for particular cycle
+	 */
+	function getUserCycleDetails(address _userAddress, uint _cycleIndex) external view returns(uint level, uint refsCount) {
+		// validation
+		require(_userAddress != address(0), "getUserCycleDetails(): user address can not be 0x00");
+		require(users[_userAddress].isInitialized, "getUserCycleDetails(): user does not exist");
+		require(_cycleIndex < users[_userAddress].cycleDetailsCount, "getUserCycleDetails(): _cycleIndex does not exist");
+		// return user cycle details
+		return (
+			users[_userAddress].cycleDetails[_cycleIndex].level,
+			users[_userAddress].cycleDetails[_cycleIndex].refsCount
+		);
 	}
 
 	/**

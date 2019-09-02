@@ -32,6 +32,24 @@ contract("Contract: unit", (accounts) => {
         it("should revert if user is not registered", async() => {
 			await contract.buyLevel(LEVEL_1, {from: userAddress1}).should.be.rejectedWith("revert");
 		});
+
+		it("should revert if level does not exist", async() => {
+			const invalidLevel = 4;
+			await contract.regUser(ROOT_REF_ID, {from: userAddress1, value: PRICE_LEVEL_1}).should.be.fulfilled;
+			await contract.buyLevel(invalidLevel, {from: userAddress1, value: PRICE_LEVEL_2}).should.be.rejectedWith("revert");
+		});
+
+		it("should revert if level price is not valid", async() => {
+			const invalidPrice = web3.utils.toWei("0.01");
+			await contract.regUser(ROOT_REF_ID, {from: userAddress1, value: PRICE_LEVEL_1}).should.be.fulfilled;
+			await contract.buyLevel(LEVEL_2, {from: userAddress1, value: invalidPrice}).should.be.rejectedWith("revert");
+		});
+
+		it("should revert on reinvest of current user level is not full", async() => {
+			await contract.regUser(ROOT_REF_ID, {from: userAddress1, value: PRICE_LEVEL_1}).should.be.fulfilled;
+			await contract.buyLevel(LEVEL_2, {from: userAddress1, value: PRICE_LEVEL_2}).should.be.fulfilled;
+			await contract.buyLevel(LEVEL_1, {from: userAddress1, value: PRICE_LEVEL_1}).should.be.rejectedWith("revert");
+		});
 		
 		it("should buy a new level", async() => {
 			await contract.regUser(ROOT_REF_ID, {from: userAddress1, value: PRICE_LEVEL_1}).should.be.fulfilled;
@@ -120,6 +138,27 @@ contract("Contract: unit", (accounts) => {
 	describe("isReinvest()", () => {
         it("should revert if user is not registered", async() => {
 			await contract.isReinvest(LEVEL_2, {from: userAddress1}).should.be.rejectedWith("revert");
+		});
+
+		it("should revert if level does not exist", async() => {
+			const invalidLevel = 4;
+			await contract.isReinvest(invalidLevel, {from: userAddress1}).should.be.rejectedWith("revert");
+		});
+
+		it("should return true if user wants to buy the previous level", async() => {
+			await contract.regUser(ROOT_REF_ID, {from: userAddress1, value: PRICE_LEVEL_1}).should.be.fulfilled;
+			await contract.buyLevel(LEVEL_2, {from: userAddress1, value: PRICE_LEVEL_2}).should.be.fulfilled;
+			const isReinvest = await contract.isReinvest(LEVEL_1, {from: userAddress1}).should.be.fulfilled;
+			assert.equal(isReinvest, true);
+		});
+
+		it("should return true if user on the last level wants to buy last level", async() => {
+			await contract.regUser(ROOT_REF_ID, {from: userAddress1, value: PRICE_LEVEL_1}).should.be.fulfilled;
+			await contract.buyLevel(LEVEL_2, {from: userAddress1, value: PRICE_LEVEL_2}).should.be.fulfilled;
+			await contract.buyLevel(LEVEL_3, {from: userAddress1, value: PRICE_LEVEL_3}).should.be.fulfilled;
+			await contract.buyLevel(LEVEL_4, {from: userAddress1, value: PRICE_LEVEL_4}).should.be.fulfilled;
+			const isReinvest = await contract.isReinvest(LEVEL_4, {from: userAddress1}).should.be.fulfilled;
+			assert.equal(isReinvest, true);
 		});
 		
 		it("should return false if buying is not reinvest", async() => {
