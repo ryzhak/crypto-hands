@@ -1,5 +1,5 @@
 
-// File: @openzeppelin/contracts/math/SafeMath.sol
+// File: @openzeppelin\contracts\math\SafeMath.sol
 
 pragma solidity ^0.5.0;
 
@@ -109,7 +109,7 @@ library SafeMath {
     }
 }
 
-// File: @openzeppelin/contracts/ownership/Ownable.sol
+// File: @openzeppelin\contracts\ownership\Ownable.sol
 
 pragma solidity ^0.5.0;
 
@@ -187,7 +187,7 @@ contract Ownable {
     }
 }
 
-// File: contracts/TestAvatar1.sol
+// File: contracts\TestAvatar1.sol
 
 pragma solidity ^0.5.8;
 
@@ -204,7 +204,8 @@ contract TestAvatar1 is Ownable {
 
 	struct UserCycleDetails {
 		uint level;
-		uint refsCount;
+		uint totalRefsCount; // total refs count on all levels
+		uint refsCount; // refs count of the "refs" mapping
 		mapping(uint => address payable) refs;
 	}
 
@@ -281,12 +282,14 @@ contract TestAvatar1 is Ownable {
 		// if buying operation is reinvest
 		if(_isReinvest(_level)) {
 			// check that current user level is full
-			require(_getFreeRef(msg.sender, users[msg.sender].cycleDetails[users[msg.sender].cycleDetailsCount].level) != address(0), "buyLevel(): not all levels are full");
+			require(_isCurrentLevelFull(), "buyLevel(): not all levels are full");
 			// create a new cycle with a desired level
 			UserCycleDetails memory userCycleDetails;
 			userCycleDetails.level = _level;
 			users[msg.sender].cycleDetails[users[msg.sender].cycleDetailsCount] = userCycleDetails;
 			users[msg.sender].cycleDetailsCount = users[msg.sender].cycleDetailsCount.add(1);
+			// refresh upliner address because we increased user cycle
+			uplinerAddress = _getUplinerAddress(_level);
 		} else {
 			uint currentUserLevel = users[msg.sender].cycleDetails[users[msg.sender].cycleDetailsCount.sub(1)].level;
 			require(currentUserLevel.add(1) == _level, "buyLevel(): can not buy this level");
@@ -329,6 +332,25 @@ contract TestAvatar1 is Ownable {
 	}
 
 	/**
+	 * @dev Returns user details for particular cycle
+	 * @param _userAddress user address
+	 * @param _cycleIndex cycle index
+	 * @return user level, direct refs count and total refs count for a particular cycle
+	 */
+	function getUserCycleDetails(address _userAddress, uint _cycleIndex) external view returns(uint level, uint refsCount, uint totalRefsCount) {
+		// validation
+		require(_userAddress != address(0), "getUserCycleDetails(): user address can not be 0x00");
+		require(users[_userAddress].isInitialized, "getUserCycleDetails(): user does not exist");
+		require(_cycleIndex < users[_userAddress].cycleDetailsCount, "getUserCycleDetails(): _cycleIndex does not exist");
+		// return user cycle details
+		return (
+			users[_userAddress].cycleDetails[_cycleIndex].level,
+			users[_userAddress].cycleDetails[_cycleIndex].refsCount,
+			users[_userAddress].cycleDetails[_cycleIndex].totalRefsCount
+		);
+	}
+
+	/**
 	 * @dev Registers a new user
 	 * @param _refId referrer id
 	 */
@@ -347,6 +369,8 @@ contract TestAvatar1 is Ownable {
 		UserCycleDetails storage freeRefCycleDetails = users[freeRefAddress].cycleDetails[providedRefCurrentCycle];
 		freeRefCycleDetails.refs[freeRefCycleDetails.refsCount] = msg.sender;
 		freeRefCycleDetails.refsCount = freeRefCycleDetails.refsCount.add(1);
+		// increase total refs count
+		_increaseTotalRefsCount(freeRefAddress);
 		// transfer payment to ref
 		freeRefAddress.transfer(msg.value);
 	}
@@ -463,8 +487,8 @@ contract TestAvatar1 is Ownable {
 			}
 			// if this is user direct upliner of the needed level
 			if(i.mod(_level.add(1)) == 0) {
-				// if direct ref has the needed level
-				if(users[userList[nextRefId]].cycleDetails[currentUserCycle].level == _level) {
+				// if direct ref has the needed cycle and level
+				if(users[userList[nextRefId]].cycleDetailsCount >= users[msg.sender].cycleDetailsCount && users[userList[nextRefId]].cycleDetails[currentUserCycle].level == _level) {
 					uplinerAddress = userList[nextRefId];
 					uplinerFound = true;
 				}
@@ -473,6 +497,44 @@ contract TestAvatar1 is Ownable {
 			i = i.add(1);
 		}
 		return uplinerAddress;
+	}
+
+	/**
+	 * @dev Increases total refs count up the tree(for "levelPriceCount" levels)
+	 * @param _refAddress 1st ref address up the tree
+	 */
+	function _increaseTotalRefsCount(address _refAddress) internal {
+		// validation
+		require(_refAddress != address(0), "_increaseTotalRefsCount(): _refAddress can not be 0x00");
+		require(users[_refAddress].isInitialized, "_increaseTotalRefsCount(): ref should be initialized");
+		// increase total ref counts up the tree
+		uint firstRefCurrentCycle = users[_refAddress].cycleDetailsCount.sub(1);
+		uint nextRefId = users[_refAddress].id;
+		uint i = 0;
+		while(i < levelPriceCount) {
+			// increase total refs count
+			users[userList[nextRefId]].cycleDetails[firstRefCurrentCycle].totalRefsCount = users[userList[nextRefId]].cycleDetails[firstRefCurrentCycle].totalRefsCount.add(1);
+			// if user is root then break
+			if(users[userList[nextRefId]].isRoot) break;
+			// prepare next cycle
+			nextRefId = users[userList[nextRefId]].refId;
+			i = i.add(1);
+		}
+	}
+
+	/**
+	 * @dev Checks whether current user level is full
+	 * @return whether current user level is full
+	 */
+	function _isCurrentLevelFull() internal view returns (bool) {
+		// validation
+		require(users[msg.sender].isInitialized, "_isCurrentLevelFull(): user is not initialized");
+		// check that current user level is full
+		uint maxUserCountForLevel = 0;
+		for(uint i = 1; i < users[msg.sender].cycleDetails[users[msg.sender].cycleDetailsCount.sub(1)].level.add(2); i++) {
+			maxUserCountForLevel = maxUserCountForLevel.add(refLevelLimit**i);
+		}
+		return users[msg.sender].cycleDetails[users[msg.sender].cycleDetailsCount.sub(1)].totalRefsCount >= maxUserCountForLevel;
 	}
 
 	/**
